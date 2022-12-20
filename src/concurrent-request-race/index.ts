@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 export const concurrentRequestRace = (urls: string[], max: number): Promise<unknown[]> => {
-  return new Promise(async (resolve) => {
+  return (async () => {
     const result: unknown[] = [];
     const pool: Promise<unknown>[] = [];
 
     if (urls.length === 0 || max <= 0) {
-      return resolve(result);
+      return Promise.resolve(result);
     }
 
     const request = (currentIndex: number) => {
@@ -35,7 +35,6 @@ export const concurrentRequestRace = (urls: string[], max: number): Promise<unkn
     }
 
     await Promise.all(pool);
-
-    resolve(result);
-  });
+    return Promise.resolve(result);
+  })();
 };
