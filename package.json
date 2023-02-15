@@ -3,7 +3,8 @@
   "license": "MIT",
   "author": "Fog3211",
   "scripts": {
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build": "tsc"
   },
   "devDependencies": {
     "@types/jest": "^29.2.4",
