@@ -1,0 +1,51 @@
+name: Sync to Gist
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Sync to Gist
+        run: |
+          # get modified files in last commit
+          git diff-tree --no-commit-id --name-only -r HEAD | while read filename; do
+            # ignore @types directory and non-text files
+            if [[ "$filename" == *@types/* ]] || ! file -b --mime-type "$filename" | grep -q text; then
+              continue
+            fi
+
+            # extract filename and directory name
+            filename_no_ext="${filename%.*}"
+            dirname="$(dirname "$filename_no_ext")"
+            basename="$(basename "$filename_no_ext")"
+
+            # if there is only one index file in the directory, create file with the directory name
+            if [[ "$(ls -1 "$dirname" | grep -E "^index(\..*)?$" | wc -l)" -eq 1 ]]; then
+              content="$(cat "$filename")"
+              json="{\"files\":{\"$basename.ts\":{\"content\":\"$content\"}}}"
+              http --check-status -A "Bearer $GIST_TOKEN" -d "$json" "https://api.github.com/gists"
+            else
+              # if there are multiple files or directories in the directory, create directory with all files
+              files="$(find "$dirname" -type f | grep -vE "^.*\/index(\..*)?$")"
+              files_json=""
+              for file in $files; do
+                file_content="$(cat "$file")"
+                file_name="$(basename "$file")"
+                files_json="$files_json\"$file_name\":{\"content\":\"$file_content\"},"
+              done
+              files_json="${files_json%,}" # remove trailing comma
+              json="{\"files\":{\"$basename\":{\"type\":\"dir\", \"files\": {$files_json}}}}"
+              http --check-status -A "Bearer $GIST_TOKEN" -d "$json" "https://api.github.com/gists"
+            fi
+          done
