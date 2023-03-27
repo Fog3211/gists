@@ -12,7 +12,7 @@ export const selectionSort = (data: number[]) => {
     const temp = data[i];
     data[i] = data[minIndex];
     data[minIndex] = temp;
-
-    return data;
   }
+
+  return data;
 };
